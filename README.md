@@ -2,29 +2,52 @@
 This repository contains the Margo Helm deployment specification, a companion
 to the [core specification](https://github.com/margo/specification).
 
-## Contributing
+# Contributing
 
-The [contribution flow](https://miro.com/app/board/uXjVJfhlCYM=/?share_link_id=610857134424)
-describes the Technical Working Group's review process for submissions.
-Select the category that matches your proposed change:
+[Contribution flow process In Detail ](https://miro.com/app/board/uXjVJfhlCYM=/?share_link_id=610857134424) - This flow process incorporates two systematic approaches, ([Cat 1](https://github.com/margo/specification/tree/pre-draft?tab=readme-ov-file#choose-cat-1--submit-pr--easycla--review--approve--merge) & [Cat 2](https://github.com/margo/specification/tree/pre-draft?tab=readme-ov-file#choose-cat-2--specification-update-process--sup-process--easycla--review--approve--merge)) utilised by the Technical Working Group for the evaluation and processing of submissions made by non-Margo members. It encompasses a series of defined stages, ensuring that each submission is rigorously reviewed in alignment with established criteria and protocols. The process is designed to facilitate transparency, efficiency, and thoroughness, thereby fostering a robust framework for collaboration and innovation within the group.
 
-* Category 1: a minor bug report or editorial change. Submit a
-  [pull request](https://github.com/margo/deployment-specification-helm/pulls).
-* Category 2: a specification enhancement. Submit an
-  [enhancement request](https://github.com/margo/specification-enhancements).
+# Individual Contributor (Non-member)
 
-Non-member contributors must sign the applicable
-[Contributor License Agreement](https://github.com/margo/EasyCLA-public-feedback)
-before their pull requests can be merged. Individual contributors act on their
-own behalf, not on behalf of their employer.
+If you, as an individual non-Margo member, own the contribution, you **MUST SIGN** the Individual [Contributor License Agreement](https://github.com/margo/EasyCLA-public-feedback) (CLA) at the point of submitting a PR. This signed CLA will be required before your contribution can be merged into the project repository. Just so you know, as an individual contributor, you are acting on your own behalf and not on your employer.
 
-The Technical Working Group reviews submissions. Approved changes are merged
-into the appropriate branch. Submissions may be closed for insufficient
-feedback, unresolved objections, or incomplete CLA requirements.
+# Submission Steps
 
-## License
+**Step 1:** The Contributor selects either Category 1 or Category 2 based on the type of submission proposal.
 
-Contributions to this draft specification are subject to the
-[Open Web Foundation CLA Copyright Grant 0.9](https://www.openwebfoundation.org/the-agreements/the-owf-0-9-agreements-necessary-claims/cla-copyright-grant-0-9).
+**Category 1 (Cat 1):** Minor Bug Report Issue or pull request submission to suggest a simple editorial change
 
-Copyright 2025 Margo.
+**Category 2 (Cat 2):** Specification Enhancement Request detailing a suggested function proposal.
+
+<img width="2606" height="880" alt="image" src="https://github.com/user-attachments/assets/880ae53b-298c-42c6-a816-8c2ba166066f" />
+
+**Cat 1 - Step 2:** [Submit PR](https://github.com/margo/specification/pulls)
+
+**Cat 2 - Step 2:** [Submit Enhancement Request](https://github.com/margo/specification-enhancements)
+
+**ALL** Non-member PR submissions must sign the [Contributor License Agreement](https://github.com/margo/EasyCLA-public-feedback).  
+
+## Process Outcomes
+
+### **Success Paths**
+- **Cat 1**:
+  - PR approved by TWG members and merged into the appropriate release branch
+- **Cat 2**:
+  - Enhancement requests accepted and added to the roadmap 
+  - (Optional) Specification update proposal document submitted and approved by the TWG technical leads
+
+### **Closure Paths**
+- Chair closes issue (insufficient feedback/comments)
+- PR closed due to unresolved objections
+- Process stopped due to EasyCLA non-compliance
+
+## Key Governance Principles
+- **Sign-off Framework**: All contributions require proper authorization
+- **Transparency**: Clear review stages with defined stakeholders
+- **Member Oversight**: MARGO members maintain quality control
+- **Chair Authority**: Final decision-making power for approvals and closures
+
+## Licenses
+
+Margo contributors contributing to this draft specification have made those contributions subject to the Open Web Foundation Contributor License Agreement Contribution Copyright Grant, available at [Open Web Foundation - CLA Copyright Grant 0.9](https://www.openwebfoundation.org/the-agreements/the-owf-0-9-agreements-necessary-claims/cla-copyright-grant-0-9).
+
+Copyright ©️ 2025 Margo.
