@@ -1,0 +1,68 @@
+name: PR Age Check
+
+on:
+  pull_request:
+    types: [opened, synchronize, ready_for_review, reopened]
+  schedule:
+    - cron: '17 * * * *'
+  workflow_dispatch:
+
+permissions:
+  contents: read
+  pull-requests: read
+
+jobs:
+  check-pr-age:
+    if: github.event_name == 'pull_request'
+    runs-on: ubuntu-latest
+    steps:
+      - name: Check PR Age
+        uses: actions/github-script@v7
+        with:
+          script: |
+            const prCreatedAt = new Date(context.payload.pull_request.created_at);
+            const now = new Date();
+            const ageInDays = (now - prCreatedAt) / (1000 * 60 * 60 * 24);
+
+            if (ageInDays < 7) {
+              core.setFailed(`PR must be open for at least 7 days. Currently: ${ageInDays.toFixed(2)} days.`);
+            } else {
+              console.log(`PR is old enough: ${ageInDays.toFixed(2)} days.`);
+            }
+  rerun-mature-checks:
+    if: github.event_name != 'pull_request'
+    runs-on: ubuntu-latest
+    permissions:
+      actions: write
+      contents: read
+      pull-requests: read
+    steps:
+      - name: Rerun failed checks for mature pull requests
+        uses: actions/github-script@v7
+        with:
+          script: |
+            const { owner, repo } = context.repo;
+            const pulls = await github.paginate(github.rest.pulls.list, {
+              owner, repo, state: 'open', per_page: 100
+            });
+            for (const pr of pulls) {
+              if (Date.now() - Date.parse(pr.created_at) < 7 * 24 * 60 * 60 * 1000) {
+                continue;
+              }
+              const runs = await github.paginate(github.rest.actions.listWorkflowRuns, {
+                owner, repo, workflow_id: 'pr-age-check.yaml',
+                event: 'pull_request', head_sha: pr.head.sha, per_page: 100
+              });
+              const matching = runs.filter(run =>
+                run.head_branch === pr.head.ref &&
+                (!run.pull_requests?.length || run.pull_requests.some(item => item.number === pr.number))
+              );
+              matching.sort((a, b) => Date.parse(b.created_at) - Date.parse(a.created_at));
+              const latest = matching[0];
+              if (!latest) {
+                core.warning(`No age-check run found for PR #${pr.number} at ${pr.head.sha}.`);
+              } else if (latest.status === 'completed' && latest.conclusion === 'failure') {
+                await github.rest.actions.reRunWorkflow({ owner, repo, run_id: latest.id });
+                core.info(`Rerunning age check for PR #${pr.number}.`);
+              }
+            }
