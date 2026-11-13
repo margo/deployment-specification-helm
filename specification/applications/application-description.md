@@ -1,0 +1,228 @@
+# Application Description Supplemental Material
+
+The following content supplements the [Application Description](https://docs.margo.org/specification/applications/application-description) documentation in the core specification with requirements clarifications specific to Helm workloads.
+
+## Application Description Property Handling
+
+The following defines how certain properties in the Application Description file are handled specifically for Helm workloads. Workload target implementation MUST apply these rules when installing Helm workloads.
+
+- The `component.name` property MUST be used as the chart name when installing Helm charts.
+- The `component.properties.wait` indicates the workload target MUST wait until the component is deployed before moving to the next component.
+- The `parameter.targets[].pointer` MUST use the dot notation for matching elements in the Helm chart's `values.yaml` file. This follows the same naming convention used with the --set command-line argument with the Helm install command.
+
+## Example Application Description
+
+```yaml
+apiVersion: v1
+id: com-northstartida-digitron-orchestrator
+metadata:
+  name: Digitron orchestrator
+  description: The Digitron orchestrator application
+  version: 1.2.1 
+  catalog:
+    application:
+      icon: ./resources/ndo-logo.png
+      tagline: Northstar Industrial Application's next-gen, AI-driven, Digitron instrument orchestrator.
+      descriptionFile: ./resources/description.md
+      releaseNotes: ./resources/release-notes.md
+      licenseFile: ./resources/license.pdf
+      site: http://www.northstar-ida.com
+      tags: ["optimization", "instrumentation"]
+    author:
+      - name: Roger Wilkershank
+        email: rpwilkershank@northstar-ida.com
+    organization:
+      - name: Northstar Industrial Applications
+        site: http://northstar-ida.com
+deploymentProfiles:
+  - key: margo.org/deployment/helm
+    id: com-northstartida-digitron-orchestrator-helm-a
+    description: This allows you to install/run the application as a Helm chart deployment.
+      The device where this application is installed needs to have a screen and a keyboard (as indicated in the required peripherals).
+    components:
+      - name: database-services
+        properties: 
+          repository: oci://quay.io/charts/realtime-database-services
+          revision: 2.3.7
+          wait: true
+          timeout: 8m30s
+      - name: digitron-orchestrator
+        properties:
+          repository: oci://northstarida.azurecr.io/charts/northstarida-digitron-orchestrator
+          revision: 1.0.9
+          wait: true
+    characteristics:
+      - matchExpressions:
+          - key: margo.org/resource/cpu
+            property: /cpus
+            operator: ContainsAny
+            itemSelector:
+              matchExpressions:
+                - property: /cores
+                  operator: GtEq
+                  values: [1.5]
+                - property: /architecture
+                  operator: In
+                  values: ["amd64"]
+          - key: margo.org/resource/memory
+            property: /memory
+            operator: GtEq
+            values: [1]
+          - key: margo.org/resource/storage
+            property: /storage
+            operator: GtEq
+            values: [10]
+          - key: margo.org/peripherals
+            property: /peripherals
+            operator: ContainsAll
+            itemSelector:
+              matchExpressions:
+                - property: /type
+                  operator: In
+                  values: ["gpu"]
+                - property: /manufacturer
+                  operator: In
+                  values: ["NVIDIA"]
+          - key: margo.org/interfaces
+            property: /interfaces
+            operator: ContainsAll
+            itemSelector:
+              matchExpressions:
+                - property: /type
+                  operator: In
+                  values: ["ethernet", "bluetooth"]
+parameters:
+  idpName:
+    value: "test"
+    targets:
+      # Maps to deployment configuration param,
+      # e.g., helm install ... --set idp.name="test"
+      - pointer: idp.name
+        components: ["digitron-orchestrator"]
+  idpProvider:
+    targets:
+      - pointer: idp.provider
+        components: ["digitron-orchestrator"]
+  idpClientId:
+    targets:
+      - pointer: idp.clientId
+        components: ["digitron-orchestrator"]
+  idpUrl:
+    targets:
+      - pointer: idp.providerUrl
+        components: ["digitron-orchestrator"]
+      - pointer: idp.providerMetadata
+        components: ["digitron-orchestrator"]
+  adminName:
+    targets:
+      - pointer: administrator.name
+        components: ["digitron-orchestrator"]
+  adminPrincipalName:
+    targets:
+      - pointer: administrator.userPrincipalName
+        components: ["digitron-orchestrator"]
+  pollFrequency:
+    value: 30
+    targets: 
+      - pointer: settings.pollFrequency
+        components: ["digitron-orchestrator", "database-services"]
+  siteId:
+    targets:
+      - pointer: settings.siteId
+        components: ["digitron-orchestrator", "database-services"]
+  cpuLimit:
+    value: 1 
+    targets:
+      - pointer: settings.limits.cpu
+        components: ["digitron-orchestrator"]
+  memoryLimit:
+    value: 16384
+    targets:
+      - pointer: settings.limits.memory
+        components: ["digitron-orchestrator"]
+configuration:
+  sections:
+    - name: General
+      settings:
+        - parameter: pollFrequency
+          name: Poll Frequency
+          description: How often the service polls for updated data in seconds
+          schema: pollRange
+        - parameter: siteId
+          name: Site Id
+          description: Special identifier for the site (optional)
+          schema: optionalText
+    - name: Identity Provider
+      settings:
+        - parameter: idpName
+          name: Name
+          description: The name of the Identity Provider to use
+          immutable: true
+          schema: requiredText
+        - parameter: idpProvider
+          name: Provider
+          description: Provider something something
+          immutable: true
+          schema: requiredText
+        - parameter: idpClientId
+          name: Client ID
+          description: The client id
+          immutable: true
+          schema: requiredText
+        - parameter: idpUrl
+          name: Provider URL
+          description: The url of the Identity Provider
+          immutable: true
+          schema: url
+    - name: Administrator
+      settings:
+        - parameter: adminName
+          name: Presentation Name
+          description: The presentation name of the administrator
+          schema: requiredText
+        - parameter: adminPrincipalName
+          name: Principal Name
+          description: The principal name of the administrator
+          schema: email
+    - name: Resource Limits
+      settings:
+        - parameter: cpuLimit
+          name: CPU Limit
+          description: Maximum number of CPU cores to allow the application to consume
+          schema: cpuRange
+        - parameter: memoryLimit
+          name: Memory Limit
+          description: Maximum number of memory to allow the application to consume
+          schema: memoryRange
+  schema:
+    - name: requiredText
+      dataType: string
+      maxLength: 45
+      allowEmpty: false
+    - name: email
+      dataType: string
+      allowEmpty: false
+      regexMatch: .*@[a-z0-9.-]*
+    - name: url
+      dataType: string
+      allowEmpty: false
+      regexMatch: ^(http(s):\/\/.)[-a-zA-Z0-9@:%._\+~#=]{2,256}\.[a-z]{2,6}\b([-a-zA-Z0-9@:%_\+.~#?&//=]*)$
+    - name: pollRange
+      dataType: integer
+      minValue: 30
+      maxValue: 360
+      allowEmpty: false
+    - name: optionalText
+      dataType: string  
+      minLength: 5
+      allowEmpty: true
+    - name: cpuRange
+      dataType: double
+      minValue: 0.5
+      maxPrecision: 1
+      allowEmpty: false
+    - name: memoryRange
+      dataType: integer
+      minValue: 16384
+      allowEmpty: false
+```
