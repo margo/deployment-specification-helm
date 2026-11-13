@@ -1,50 +1,77 @@
-# Helm Workload Deployment Specification
-This repository contains the Margo Helm deployment specification, a companion
-to the [core specification](https://github.com/margo/specification).
+# Helm Deployment Technology Specification
 
-# Contributing
+This repository contains the supplemental requirements for application and workload target suppliers to support the Helm workload deployment technology. This documentation supplements the requirements documented in Margo's [core specification](https://github.com/margo/specification) and does not stand on its own.
 
-[Contribution flow process In Detail ](https://miro.com/app/board/uXjVJfhlCYM=/?share_link_id=610857134424) - This flow process incorporates two systematic approaches, ([Cat 1](https://github.com/margo/specification/tree/pre-draft?tab=readme-ov-file#choose-cat-1--submit-pr--easycla--review--approve--merge) & [Cat 2](https://github.com/margo/specification/tree/pre-draft?tab=readme-ov-file#choose-cat-2--specification-update-process--sup-process--easycla--review--approve--merge)) utilised by the Technical Working Group for the evaluation and processing of submissions made by non-Margo members. It encompasses a series of defined stages, ensuring that each submission is rigorously reviewed in alignment with established criteria and protocols. The process is designed to facilitate transparency, efficiency, and thoroughness, thereby fostering a robust framework for collaboration and innovation within the group.
+**Deployment Technology Key:** `margo.org/deployment/helm`
 
-# Individual Contributor (Non-member)
+**Status:** Candidate
 
-If you, as an individual non-Margo member, own the contribution, you **MUST SIGN** the Individual [Contributor License Agreement](https://github.com/margo/EasyCLA-public-feedback) (CLA) at the point of submitting a PR. This signed CLA will be required before your contribution can be merged into the project repository. Just so you know, as an individual contributor, you are acting on your own behalf and not on your employer.
+**Specification Version:** `1.0.0-rc.3`
 
-# Submission Steps
+> **Note:** This specification follows the same [Versioning Management Strategy](https://docs.margo.org/specification/specification-version-management) outlined in Margo's core specification. This specification is versioned independently of Margo's core specification.
 
-**Step 1:** The Contributor selects either Category 1 or Category 2 based on the type of submission proposal.
+## Supplemental Requirements
 
-**Category 1 (Cat 1):** Minor Bug Report Issue or pull request submission to suggest a simple editorial change
+The following pages define the additional requirements on supporting the Helm deployment technology:
 
-**Category 2 (Cat 2):** Specification Enhancement Request detailing a suggested function proposal.
+- [Helm Profile Characteristics](./specification//margo-management-interface/helm-profile-characteristics.md)
+- [Application Description Supplemental Material](./specification/applications/application-description.md)
+- [Workload Target Requirements Supplemental Material](./specification/margo-workload-targets/workload-target-requirements.md)
+- [Collecting Workload Observability Data Supplemental Material](./specification/observability/collecting-workload-observability-data.md)
 
-<img width="2606" height="880" alt="image" src="https://github.com/user-attachments/assets/880ae53b-298c-42c6-a816-8c2ba166066f" />
+## Special Constraints
 
-**Cat 1 - Step 2:** [Submit PR](https://github.com/margo/specification/pulls)
+The Helm deployment technology specification supports workload deployments as Helm charts using either Helm [version 3](https://helm.sh/docs/v3/topics/charts) or [version 4](https://helm.sh/docs/topics/charts) using Chart APIVersion v2 only.
 
-**Cat 2 - Step 2:** [Submit Enhancement Request](https://github.com/margo/specification-enhancements)
+In order to facilitate the required deployment options for Helm charts, the specification does not support Helm functions requiring direct communication with the Kubernetes API.
 
-**ALL** Non-member PR submissions must sign the [Contributor License Agreement](https://github.com/margo/EasyCLA-public-feedback).  
+Your Helm-based workloads MUST NOT rely on the following Helm functions:
 
-## Process Outcomes
+- [Lookup](https://helm.sh/docs/chart_template_guide/functions_and_pipelines#using-the-lookup-function): The `lookup` template function queries live resources in the target Kubernetes cluster at render time, for example, to fetch ConfigMaps, Secrets, or other objects. This requires direct API access and cluster credentials during rendering.
+- [Hooks](https://helm.sh/docs/topics/charts_hooks/): Hooks (pre/post install, upgrade, delete, rollback, test, etc.) execute additional Kubernetes resources or jobs at specific points in the release lifecycle. Helm waits for these resources to reach a ready state by monitoring them via the Kubernetes API, and the hooks themselves may perform privileged or arbitrary operations in the cluster.
+- [CRD management via Helm](https://helm.sh/docs/chart_best_practices/custom_resource_definitions/): Installing or managing Custom Resource Definitions (CRDs) with Helm requires checking for the presence of CRDs and registering new APIs with the cluster, which involves API calls and may require elevated permissions. **Note**: This does not necessarily indicate that CRDs will not be supported, but the way they will be supported has not been defined yet due to the additional requirements for handling them securely.
 
-### **Success Paths**
-- **Cat 1**:
-  - PR approved by TWG members and merged into the appropriate release branch
-- **Cat 2**:
-  - Enhancement requests accepted and added to the roadmap 
-  - (Optional) Specification update proposal document submitted and approved by the TWG technical leads
+**Note:** This function list is based on the current Helm v3 and v4 implementations. Additional functions may be added later if Helm introduces new functions requiring communication with the Kubernetes API to work.
 
-### **Closure Paths**
-- Chair closes issue (insufficient feedback/comments)
-- PR closed due to unresolved objections
-- Process stopped due to EasyCLA non-compliance
+## Local Registries
 
-## Key Governance Principles
-- **Sign-off Framework**: All contributions require proper authorization
-- **Transparency**: Clear review stages with defined stakeholders
-- **Member Oversight**: MARGO members maintain quality control
-- **Chair Authority**: Final decision-making power for approvals and closures
+This section describes options for configuring local registries to avoid reliance on public Internet-accessible registries for situations where the Application Package and workload artifacts are not accessible via the internet.
+
+### Option - Container Image Registry Mirror on Kubernetes Level
+
+Kubernetes supports the configuration of registry mirrors. How this is configured depends on the distribution and the underlying container runtime. Distributions that utilize **containerd** as runtime (e.g., k3s or microk8s) allow the definition of mirrors in a configuration file. For example, in k3s, the file `/etc/rancher/k3s/registries.yaml` can be used to set up a mirror for each device's Kubernetes environment:
+
+```yaml
+mirrors:
+  "docker.io":
+    endpoint:
+      - "http://<local-registry-ip>:5000"
+configs:
+  "docker.io":
+    auth:
+      username: "<username>"
+      password: "<password>"
+```
+
+### Option - Helm Chart Component Registry as Pull-through Cache
+
+Setting up a pull-through cache for Helm charts in combination with Kubernetes involves configuring a local Helm chart repository, e.g., ChartMuseum, that can be installed with the `PROXY_CACHE` variable set to `true`:
+
+```bash
+helm repo add chartmuseum https://chartmuseum.github.io/charts
+helm repo update
+helm install my-chartmuseum chartmuseum/chartmuseum --set env.open.DISABLE_API=false --set env.open.PROXY_CACHE=true
+```
+
+Then, this Helm Chart repository can be added to Helm, and chart releases can be installed there:
+
+```bash
+helm repo add my-cached-repo http://<chartmuseum-ip>:8080
+helm repo update
+helm install my-release my-cached-repo/<chart-name>
+```
+
+Now, when deploying applications in Kubernetes using Helm, the cached repository is used to serve charts rather than the remote repository.
 
 ## Licenses
 
